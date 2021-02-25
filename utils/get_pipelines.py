@@ -54,18 +54,14 @@ def get_pipelines(client):
 def format_pipeline(pipeline: dict = {}, version: dict = {}, yaml_data: dict = {}):
     """ Simplify the json """
     return {
-        "pipeline": {
-            "name": pipeline.name,
-            "id": pipeline.id,
-            "description": pipeline.description,
-            "created_at": pipeline.created_at,
-        },
-        "version": {
-            "name": version.name,
-            "id": version.id,
-            "created_at": version.created_at,
-        },
-        "yaml": yaml.dump(yaml_data),
+        "pipeline_name": pipeline.name,
+        "pipeline_id": pipeline.id,
+        "pipeline_description": pipeline.description,
+        "pipeline_created_at": pipeline.created_at,
+        "version_name": version.name,
+        "version_id": version.id,
+        "version_created_at": version.created_at,
+        "yaml_data": yaml.dump(yaml_data),
     }
 
 
