@@ -9,7 +9,7 @@ from utils.es_funcs import get_es_client, upload_to_es
 
 ES_INDEX_NAME = 'kubeflow-pipeline-secrets'
 
-def scan_all(documents, workflow_key='yaml'):
+def scan_all(documents, workflow_key='yaml_data'):
     """
     SCHEMAS:
 
@@ -50,16 +50,24 @@ def scan_all(documents, workflow_key='yaml'):
     for doc in documents:
         for (path, key) in traversal(doc[workflow_key]):
             (severity, desc) = detect_secret(path, key)
-            yield {
-                **format_pipeline(**doc),
-                "secret": {
-                     **desc,
+            if severity > 0:
+                flattened = {
+                    **format_pipeline(**doc),
+                    **{
+                         'secret_' + k: v
+                        for (k,v) in desc.items()
+                    },
                     "severity": severity,
                 }
-            }
-
+                # Too much info.
+                #del flattened['yaml_data']
+                yield flattened
 
 
 if __name__ == '__main__':
     exposed_secrets = scan_all(get_pipelines(kfp.Client()))
-    #es = get_es_client()
+    #for secret in exposed_secrets:
+    #    if secret['secret']['severity'] > 0:
+    #        print(secret)
+    es = get_es_client()
+    upload_to_es(es, exposed_secrets, ES_INDEX_NAME)
