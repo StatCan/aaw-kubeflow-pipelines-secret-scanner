@@ -21,10 +21,11 @@ def get_es_client(ES_HOST=None, ES_USER=None, ES_PASS=None):
 
     if ES_PASS is None:
         if os.getenv("ES_PASS"):
-            ES_PASS = os.getenv("ES_PAS")
+            ES_PASS = os.getenv("ES_PASS")
         else:
             ES_PASS = getpass.getpass("ElasticSearch Pass: ")
 
+    print(ES_HOST)
     return Elasticsearch(
         hosts=[ES_HOST],
         http_auth=(ES_USER, ES_PASS)
