@@ -50,5 +50,5 @@ def upload_to_es(es, documents, index):
 
 if __name__ == '__main__':
     # Just test the connection
-    es = get_es_client():
+    es = get_es_client()
     print(json.dumps(es.indices.get_alias("*"), indent=2))
