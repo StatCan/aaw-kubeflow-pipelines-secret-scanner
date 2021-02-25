@@ -2,12 +2,12 @@
 
 import os
 
+import kfp
 from utils.secret_scan import traversal, detect_secret
 from utils.get_pipelines import get_pipelines, format_pipeline
 from utils.es_funcs import get_es_client, upload_to_es
 
 ES_INDEX_NAME = 'kubeflow-pipeline-secrets'
-
 
 def scan_all(documents, workflow_key='yaml'):
     """
