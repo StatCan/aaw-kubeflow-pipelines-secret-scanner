@@ -26,7 +26,9 @@ SAFE_ENDINGS = [
     'template',     # Argo specific, references parts of the DAG by name
     'entrypoint',
     'pipelines.kubeflow.org/pipeline_compilation_time',
-    'path'
+    'path',
+    'workingDir',
+    'kind'
 ]
 SAFE_ENDINGS = [x.lower() for x in SAFE_ENDINGS]
 
@@ -58,8 +60,8 @@ def seq_iter(obj):
     elif isinstance(obj, list):
         return enumerate(obj)
     else:
-        print("WARNING: obj is neither a dict not a list. Skipping", file=sys.stderr)
-        return []
+        print(f"WARNING: '{obj}' is neither a dict not a list. Skipping", file=sys.stderr)
+        return [obj]
 
 def traversal(tree, parent=[]):
     """
@@ -73,14 +75,38 @@ def traversal(tree, parent=[]):
         An iterator of all (path, leaf) tuples. I.e. every
         key/value in the yaml file.
     """
-    for (k, v) in seq_iter(tree):
-        if k == 'pipelines.kubeflow.org/pipeline_spec' and isinstance(v, str):
+    
+    maybe_json = lambda k,v: isinstance(v, str) and isinstance(k, str) and any((
+        k.endswith(ending) for ending in ('_spec', '_ref', 'templates', 'parameters')
+    ))
+    
+    maybe_yaml = lambda k,v: isinstance(v, str) and isinstance(k, str) and any((
+        k.endswith(ending) for ending in ('manifest')
+    ))
+    
+    for (k, v) in seq_iter(tree): 
+        # Json strings
+        if maybe_json(k, v):
             # This is a special case where the annotation has a json string
             try:
-                yield from traversal(json.loads(v), parent=parent+[k])
+                branch = json.loads(v)
+                if isinstance(branch, list) or isinstance(branch, dict):
+                    yield from traversal(branch, parent=parent+[k])
+                    continue
             except:
-                yield (parent + [k], v)
-        elif any((isinstance(v, t) for t in (str, int, bool, float))):
+                pass
+            
+        elif maybe_yaml(k, v):
+            # This is a special case where the annotation has a json string
+            try:
+                branch = yaml.load(v, Loader=yaml.BaseLoader)
+                if isinstance(branch, list) or isinstance(branch, dict):
+                    yield from traversal(branch, parent=parent+[k])
+                    continue
+            except:
+                pass
+                
+        if any((isinstance(v, t) for t in (str, int, bool, float))):
             yield (parent + [k], v)
         else:
             yield from traversal(v, parent=parent+[k])
