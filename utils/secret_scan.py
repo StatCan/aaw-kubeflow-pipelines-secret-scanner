@@ -28,12 +28,18 @@ SAFE_ENDINGS = [
     'pipelines.kubeflow.org/pipeline_compilation_time',
     'path',
     'workingDir',
-    'kind'
+    'kind',
+    'digest',
+    'onExit'
 ]
 SAFE_ENDINGS = [x.lower() for x in SAFE_ENDINGS]
 
 MASK_ON = False
 MASK_LEN = 8
+
+# Very basic regexp to filter out internal kubernetes services.
+URL_REGEXP = re.compile("https?:\/\/[a-zA-Z0-9][a-zA-Z0-9-\.]+(:[0-9][0-9]+)?$")
+
 
 def shannon_entropy(data, iterator):
     """
@@ -195,36 +201,46 @@ def detect_secret(path, value, max_entropy=MAX_ENTROPY):
         else:
             return s
 
+        
+    DEFAULT = (0, {
+        "key": human_path,
+        'value': mask(value),
+    })
 
     # Only strings are secret
     if not isinstance(value, str):
-        return 0, {}
+        return DEFAULT
 
     # It's already escaped
     if value.startswith('{{') and value.endswith('}}'):
-        return 0, {}
+        return DEFAULT
 
     # Using an actual k8s secret (by reference)
     if 'secretKeyRef' in path:
-        return 0, {}
+        return DEFAULT
 
     # Things like env-var NAMES, and image names
     # tend to trigger the entropy checker
     for ending in SAFE_ENDINGS:
         if (not isinstance(path[-1], str)) or path[-1].lower().endswith(ending):
-            return 0, {}
+            return DEFAULT
 
     # Check the regexes - HARD violations
     for (k, regexp) in rules.items():
         if regexp.match(value):
             return 2, {
                 "key": human_path,
+                'value': mask(value),
                 "violation": k,
             }
 
     # Check the entropy - SOFT violations
     h = None
     if len(value) >= 8:
+        # ignore urls, urls with passwords are scanned above.
+        if URL_REGEXP.match(value):
+            return DEFAULT
+        
         for alphabet in (HEX_CHARS, BASE64_CHARS, ASCII_CHARS):
             if set(value.upper()) <= alphabet:
                 h = shannon_entropy(value, alphabet)
@@ -237,7 +253,7 @@ def detect_secret(path, value, max_entropy=MAX_ENTROPY):
                     }
 
     # fallthrough
-    return 0, {}
+    return DEFAULT
 
 
 

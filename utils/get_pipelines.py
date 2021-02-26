@@ -51,9 +51,9 @@ def get_pipelines(client):
             }
 
 
-def format_pipeline(pipeline: dict = {}, version: dict = {}, yaml_data: dict = {}):
+def format_pipeline(pipeline: dict = {}, version: dict = {}, yaml_data: dict = {}, lazy=False):
     """ Simplify the json """
-    return {
+    d =  {
         "pipeline_name": pipeline.name,
         "pipeline_id": pipeline.id,
         "pipeline_description": pipeline.description,
@@ -61,8 +61,15 @@ def format_pipeline(pipeline: dict = {}, version: dict = {}, yaml_data: dict = {
         "version_name": version.name,
         "version_id": version.id,
         "version_created_at": version.created_at,
-        "yaml_data": yaml.dump(yaml_data),
     }
+
+    if lazy:
+        # thunk it up
+        d['yaml_data'] = lambda: yaml.dump(yaml_data)
+    else:
+        d['yaml_data'] = yaml.dump(yaml_data)
+
+    return d
 
 
 if __name__ == '__main__':
