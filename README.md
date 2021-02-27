@@ -1,6 +1,6 @@
 # kfp-secret-scanner
 
-Scan for Kubeflow pipelines secrets.
+Scan for Kubeflow pipelines secrets. 
 
 ## How to use it
 
@@ -13,3 +13,9 @@ Scan for Kubeflow pipelines secrets.
 Then viola! Check kibana.
 
 ![Screenshot](screenshot.png)
+
+
+# Attribution
+
+The secret scanner borrows from [Trufflehog](https://github.com/dxa4481/truffleHog), and 
+the code and inspiration for scraping the kubeflow pipelines API came from [@wg102's repo](https://github.com/wg102/kubeflow_pipeline_detection).

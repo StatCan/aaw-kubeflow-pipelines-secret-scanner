@@ -1,0 +1,5 @@
+The regexps and entropy checker in `app/utils/secret_scan.py` borrow from
+
+https://github.com/dxa4481/truffleHog
+
+Which is GPL-v2 licensed. This code is therefore also GPL-v2 licensed.
