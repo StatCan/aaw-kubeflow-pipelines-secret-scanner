@@ -13,18 +13,19 @@ def get_es_client(ES_HOST=None, ES_USER=None, ES_PASS=None):
             default="http://daaas-es-http.daaas.svc.cluster.local:9200"
         )
 
+    # Can't use `default=` because that gets evaluated
+    # even if it isn't used.
     if ES_USER is None:
-        ES_USER = os.getenv(
-            "ES_USER",
-            default=getpass.getpass("ElasticSearch User: ")
-        )
-
+        if os.getenv("ES_USER"):
+            ES_USER = os.getenv("ES_USER")
+        else:
+            ES_USER = getpass.getpass("ElasticSearch User: ")
 
     if ES_PASS is None:
-        ES_PASS = os.getenv(
-            "ES_PASS",
-            default=getpass.getpass("ElasticSearch Pass: ")
-        )
+        if os.getenv("ES_PASS"):
+            ES_PASS = os.getenv("ES_PASS")
+        else:
+            ES_PASS = getpass.getpass("ElasticSearch Pass: ")
 
     return Elasticsearch(
         hosts=[ES_HOST],

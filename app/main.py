@@ -91,6 +91,11 @@ def scan_all(documents, workflow_key='yaml_data'):
 
 if __name__ == '__main__':
 
+    # Wait for istio
+    import time
+    time.sleep(15)
+
+    # Go!
     es = get_es_client()
 
     # yaml is expensive to render, so
@@ -106,7 +111,7 @@ if __name__ == '__main__':
     )
 
     print("Starting upload...")
-    upload_to_es(es, non_zero, ES_INDEX_BASE)
+    upload_to_es(es, non_zero, ES_INDEX_NAME)
     print("Uploaded Severities")
 
     # Remove the yaml thunk
@@ -118,5 +123,5 @@ if __name__ == '__main__':
         for x in scan_all(get_pipelines(kfp.Client()))
         if x['severity'] == 0
     )
-    upload_to_es(es, no_yaml, ES_INDEX_BASE)
+    upload_to_es(es, no_yaml, ES_INDEX_NAME)
     print("Uploaded All")
