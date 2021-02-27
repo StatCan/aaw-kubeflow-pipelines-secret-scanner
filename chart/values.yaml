@@ -1,0 +1,21 @@
+namespace: monitoring
+
+
+# 7am UTC = 2am EST
+schedule: "0 7 * * *"
+
+image:
+  registry: "k8scc01covidacr.azurecr.io/"
+  name: kfp-secret-scanner
+  version: "1.4"
+
+  imagePullSecrets: []
+  #- name: image-pull-secret
+
+# If you run the script interactively,
+elasticsearch:
+  host: http://daaas-es-http.daaas.svc.cluster.local:9200
+  index: 'kubeflow-pipeline-secrets'
+
+secretscan:
+  max_entropy: "3.5"

@@ -1,0 +1,37 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ .Chart.Name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  schedule: {{ .Values.schedule }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          {{ if .Values.image.imagePullSecrets }}
+          imagePullSecrets:
+          {{ toYaml .Values.image.imagePullSecrets | nindent 10 }}
+          {{ end }}
+          restartPolicy: OnFailure
+          containers:
+          - name: {{ .Chart.Name }}
+            image: {{ .Values.image.registry }}{{ .Values.image.name }}:{{ .Values.image.version }}
+            command: ["python3", "main.py"]
+            env:
+            - name: MAX_ENTROPY
+              value: "{{ .Values.secretscan.max_entropy }}"
+            - name: ES_HOST
+              value: {{ .Values.elasticsearch.host }}
+            - name: ES_INDEX_NAME
+              value: {{ .Values.elasticsearch.index }}
+            - name: ES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-creds
+                  key: ES_USER
+            - name: ES_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-creds
+                  key: ES_PASS
