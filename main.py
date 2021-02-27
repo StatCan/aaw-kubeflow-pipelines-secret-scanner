@@ -118,5 +118,5 @@ if __name__ == '__main__':
         for x in scan_all(get_pipelines(kfp.Client()))
         if x['severity'] == 0
     )
-    upload_to_es(es, no_yaml, ES_INDEX_BASE + '-key-pairs')
+    upload_to_es(es, no_yaml, ES_INDEX_BASE)
     print("Uploaded All")
