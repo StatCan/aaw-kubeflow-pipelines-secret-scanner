@@ -9,6 +9,8 @@
 # a secret named `elastic-creds
 # `
 
+set -e
+
 NAMESPACE="$1"
 if test -z "$NAMESPACE"; then
 	echo "Error: No namespace provided." >&2
@@ -21,6 +23,11 @@ read -s -p "Elastic User: " elk_user
 echo
 read -s -p "Elastic Password: " elk_pass
 echo
+
+if test -z "$elk_user" || test -z "$elk_pass"; then
+	echo "Provided username or password were blank. Exiting." >&2
+	exit 1
+fi
 
 kubectl create secret generic elastic-creds \
 		--from-literal=ES_USER=$elk_user \
