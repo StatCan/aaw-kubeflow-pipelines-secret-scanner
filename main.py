@@ -6,13 +6,14 @@ import kfp
 from utils.secret_scan import traversal, detect_secret
 from utils.get_pipelines import get_pipelines, format_pipeline
 from utils.es_funcs import get_es_client, upload_to_es
+import sys
 
 ES_INDEX_NAME = os.getenv(
     'ES_INDEX_NAME',
     default='kubeflow-pipeline-secrets'
 )
 
-def scan_all(documents, workflow_key='yaml'):
+def scan_all(documents, workflow_key='yaml_data'):
     """
     SCHEMAS:
 
@@ -50,19 +51,72 @@ def scan_all(documents, workflow_key='yaml'):
         'value': mask(value)
     }
     """
+    counts = { k: 0 for k in ("docs", "keys", "secrets", "entropy") }
     for doc in documents:
+        counts['docs'] += 1
         for (path, key) in traversal(doc[workflow_key]):
+            counts['keys'] += 1
             (severity, desc) = detect_secret(path, key)
-            yield {
-                **format_pipeline(**doc),
-                "secret": {
-                     **desc,
-                    "severity": severity,
-                }
+            if severity == 1:
+                counts['entropy'] += 1
+            else:
+                counts['secrets'] += 1
+
+            flattened = {
+                **format_pipeline(**doc, lazy=True),
+                **{
+                    'secret_' + k: v
+                    for (k,v) in desc.items()
+                },
+                "severity": severity,
             }
+            # Too much info.
+            #del flattened['yaml_data']
+            yield flattened
 
+    print("""
+    Summary
+    =======
 
+        Pipeline Versions Scanned: {docs}
+        Keys Scanned: {keys}
+
+    Results
+    =======
+
+        Potential Secrets: {entropy}
+        LIKELY SECRETS: {secrets}
+
+    """.format(**counts), file=sys.stderr)
 
 if __name__ == '__main__':
+
+    es = get_es_client()
+
+    # yaml is expensive to render, so
+    # use a thunk and render last-minute.
+    def unthunkify(x):
+        x['yaml_data'] = x['yaml_data']()
+        return x
+
     exposed_secrets = scan_all(get_pipelines(kfp.Client()))
-    #es = get_es_client()
+    non_zero = (
+        unthunkify(x) for x in exposed_secrets
+        if x['severity'] > 0
+    )
+
+    print("Starting upload...")
+    upload_to_es(es, non_zero, ES_INDEX_BASE)
+    print("Uploaded Severities")
+
+    # Remove the yaml thunk
+    no_yaml = (
+        {
+            k: v for (k, v) in x.items()
+            if k != 'yaml_data'
+        }
+        for x in scan_all(get_pipelines(kfp.Client()))
+        if x['severity'] == 0
+    )
+    upload_to_es(es, no_yaml, ES_INDEX_BASE + '-key-pairs')
+    print("Uploaded All")

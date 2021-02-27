@@ -5,7 +5,6 @@ import json
 import sys
 import re
 import string
-import warnings
 import yaml
 
 
@@ -28,9 +27,21 @@ SAFE_ENDINGS = [
     'description',  # Argo specific, long human description
     'template',     # Argo specific, references parts of the DAG by name
     'entrypoint',
-    'pipelines.kubeflow.org/pipeline_compilation_time'
+    'pipelines.kubeflow.org/pipeline_compilation_time',
+    'path',
+    'workingDir',
+    'kind',
+    'digest',
+    'onExit'
 ]
 SAFE_ENDINGS = [x.lower() for x in SAFE_ENDINGS]
+
+MASK_ON = False
+MASK_LEN = 8
+
+# Very basic regexp to filter out internal kubernetes services.
+URL_REGEXP = re.compile("https?:\/\/[a-zA-Z0-9][a-zA-Z0-9-\.]+(:[0-9][0-9]+)?$")
+
 
 def shannon_entropy(data, iterator):
     """
@@ -57,8 +68,8 @@ def seq_iter(obj):
     elif isinstance(obj, list):
         return enumerate(obj)
     else:
-        print("WARNING: obj is neither a dict not a list. Skipping", file=sys.stderr)
-        return []
+        print(f"WARNING: '{obj}' is neither a dict not a list. Skipping", file=sys.stderr)
+        return [obj]
 
 def traversal(tree, parent=[]):
     """
@@ -72,14 +83,38 @@ def traversal(tree, parent=[]):
         An iterator of all (path, leaf) tuples. I.e. every
         key/value in the yaml file.
     """
-    for (k, v) in seq_iter(tree):
-        if k == 'pipelines.kubeflow.org/pipeline_spec' and isinstance(v, str):
+    
+    maybe_json = lambda k,v: isinstance(v, str) and isinstance(k, str) and any((
+        k.endswith(ending) for ending in ('_spec', '_ref', 'templates', 'parameters')
+    ))
+    
+    maybe_yaml = lambda k,v: isinstance(v, str) and isinstance(k, str) and any((
+        k.endswith(ending) for ending in ('manifest')
+    ))
+    
+    for (k, v) in seq_iter(tree): 
+        # Json strings
+        if maybe_json(k, v):
             # This is a special case where the annotation has a json string
             try:
-                yield from traversal(json.loads(v), parent=parent+[k])
+                branch = json.loads(v)
+                if isinstance(branch, list) or isinstance(branch, dict):
+                    yield from traversal(branch, parent=parent+[k])
+                    continue
             except:
-                yield (parent + [k], v)
-        elif any((isinstance(v, t) for t in (str, int, bool, float))):
+                pass
+            
+        elif maybe_yaml(k, v):
+            # This is a special case where the annotation has a json string
+            try:
+                branch = yaml.load(v, Loader=yaml.BaseLoader)
+                if isinstance(branch, list) or isinstance(branch, dict):
+                    yield from traversal(branch, parent=parent+[k])
+                    continue
+            except:
+                pass
+                
+        if any((isinstance(v, t) for t in (str, int, bool, float))):
             yield (parent + [k], v)
         else:
             yield from traversal(v, parent=parent+[k])
@@ -135,17 +170,6 @@ for (k, v) in rules.items():
     rules[k] = re.compile(v)
 
 
-def handler(f):
-    def wrapper(*args, **kwargs):
-        (severity, desc) = f(*args, **kwargs)
-        if severity == 1:
-            warnings.warn("SECRET: Possible secret found; this is not secure.\n%s" % yaml.dump(desc))
-        elif severity >= 2:
-            warnings.warn("SECRET: Likely secret found; this is not secure.\n%s" % yaml.dump(desc))
-        return (severity, desc)
-    return wrapper
-
-@handler
 def detect_secret(path, value, max_entropy=MAX_ENTROPY):
     """
     Args:
@@ -171,41 +195,54 @@ def detect_secret(path, value, max_entropy=MAX_ENTROPY):
         """
         supersecretpassword -> "***************word"
         """
-        return "".join(
-            c if i < 4 else "*"
-            for (i, c) in enumerate(s[::-1])
-        )[::-1]
+        if MASK_ON:
+            return "".join(
+                c if i < MASK_LEN else "*"
+                for (i, c) in enumerate(s[::-1])
+            )[::-1]
+        else:
+            return s
 
+        
+    DEFAULT = (0, {
+        "key": human_path,
+        'value': mask(value),
+    })
 
     # Only strings are secret
     if not isinstance(value, str):
-        return 0, {}
+        return DEFAULT
 
     # It's already escaped
     if value.startswith('{{') and value.endswith('}}'):
-        return 0, {}
+        return DEFAULT
 
     # Using an actual k8s secret (by reference)
     if 'secretKeyRef' in path:
-        return 0, {}
+        return DEFAULT
 
     # Things like env-var NAMES, and image names
     # tend to trigger the entropy checker
     for ending in SAFE_ENDINGS:
-        if path[-1].lower().endswith(ending):
-            return 0, {}
+        if (not isinstance(path[-1], str)) or path[-1].lower().endswith(ending):
+            return DEFAULT
 
     # Check the regexes - HARD violations
     for (k, regexp) in rules.items():
         if regexp.match(value):
             return 2, {
                 "key": human_path,
+                'value': mask(value),
                 "violation": k,
             }
 
     # Check the entropy - SOFT violations
     h = None
     if len(value) >= 8:
+        # ignore urls, urls with passwords are scanned above.
+        if URL_REGEXP.match(value):
+            return DEFAULT
+        
         for alphabet in (HEX_CHARS, BASE64_CHARS, ASCII_CHARS):
             if set(value.upper()) <= alphabet:
                 h = shannon_entropy(value, alphabet)
@@ -218,7 +255,7 @@ def detect_secret(path, value, max_entropy=MAX_ENTROPY):
                     }
 
     # fallthrough
-    return 0, {}
+    return DEFAULT
 
 
 

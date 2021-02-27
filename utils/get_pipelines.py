@@ -25,15 +25,16 @@ def get_pipelines(client):
 
     def pipeline_versions(pipeline):
         """ Get all versions of a specific pipeline """
-        versions = client.list_pipeline_versions(pipeline.id, page_size=50).versions
-        yield from versions
+        versions = client.list_pipeline_versions(pipeline.id, page_size=50)
+        if versions.versions is not None:
+            yield from versions.versions
         while versions.next_page_token is not None:
             versions = client.list_pipeline_versions(
                 pipeline.id,
                 page_token=versions.next_page_token,
                 page_size=50
             )
-            yield from versions
+            yield from versions.versions
 
     def get_yaml(version):
         """ Get the workflow from a pipeline version """
@@ -44,32 +45,35 @@ def get_pipelines(client):
     for pipeline in pipeline_groups():
         for version in pipeline_versions(pipeline):
             yield {
-                "pipeline": pipeline,
-                "version" : version,
-                "yaml"    : get_yaml(version)
+                "pipeline" : pipeline,
+                "version"  : version,
+                "yaml_data": get_yaml(version)
             }
 
 
-def format_pipeline(pipeline: dict = {}, version: dict = {}, yaml_data: dict = {}):
+def format_pipeline(pipeline: dict = {}, version: dict = {}, yaml_data: dict = {}, lazy=False):
     """ Simplify the json """
-    return {
-        "pipeline": {
-            "name": pipeline.name,
-            "id": pipeline.id,
-            "description": pipeline.description,
-            "created_at": pipeline.created_at,
-        },
-        "version": {
-            "name": version.name,
-            "id": version.id,
-            "created_at": version.created_at,
-        },
-        "yaml": yaml.dump(yaml_data),
+    d =  {
+        "pipeline_name": pipeline.name,
+        "pipeline_id": pipeline.id,
+        "pipeline_description": pipeline.description,
+        "pipeline_created_at": pipeline.created_at,
+        "version_name": version.name,
+        "version_id": version.id,
+        "version_created_at": version.created_at,
     }
+
+    if lazy:
+        # thunk it up
+        d['yaml_data'] = lambda: yaml.dump(yaml_data)
+    else:
+        d['yaml_data'] = yaml.dump(yaml_data)
+
+    return d
 
 
 if __name__ == '__main__':
     c = kfp.Client()
     for pipeline in get_pipelines(c):
-        print(json.dumps(format_pipeline(**pipeline)))
+        print(pipeline)
         print()
