@@ -8,22 +8,23 @@ from elasticsearch.helpers import streaming_bulk
 
 def get_es_client(ES_HOST=None, ES_USER=None, ES_PASS=None):
     if ES_HOST is None:
-        if os.getenv("ES_HOST"):
-            ES_HOST = os.getenv("ES_HOST")
-        else:
-            ES_HOST = "http://daaas-es-http.daaas.svc.cluster.local:9200"
+        ES_HOST = os.getenv(
+            "ES_HOST",
+            default="http://daaas-es-http.daaas.svc.cluster.local:9200"
+        )
 
     if ES_USER is None:
-        if os.getenv("ES_USER"):
-            ES_USER = os.getenv("ES_USER")
-        else:
-            ES_USER = getpass.getpass("ElasticSearch User: ")
+        ES_USER = os.getenv(
+            "ES_USER",
+            default=getpass.getpass("ElasticSearch User: ")
+        )
+
 
     if ES_PASS is None:
-        if os.getenv("ES_PASS"):
-            ES_PASS = os.getenv("ES_PAS")
-        else:
-            ES_PASS = getpass.getpass("ElasticSearch Pass: ")
+        ES_PASS = os.getenv(
+            "ES_PASS",
+            default=getpass.getpass("ElasticSearch Pass: ")
+        )
 
     return Elasticsearch(
         hosts=[ES_HOST],

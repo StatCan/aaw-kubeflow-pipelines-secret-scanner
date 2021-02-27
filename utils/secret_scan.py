@@ -1,5 +1,6 @@
 #!/bin/python3
 
+import os
 import json
 import sys
 import re
@@ -17,7 +18,8 @@ import math
 BASE64_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=")
 HEX_CHARS = set("1234567890abcdefABCDEF")
 ASCII_CHARS = set(string.printable)
-MAX_ENTROPY = 3.5
+
+MAX_ENTROPY = float(os.getenv('MAX_ENTROPY', default=3.5))
 
 SAFE_ENDINGS = [
     'apiVersion',   # High entropy
@@ -128,7 +130,7 @@ rules = {
     ,"Twitter OAuth": '[t|T][w|W][i|I][t|T][t|T][e|E][r|R].*[''|"][0-9a-zA-Z]{35,44}[''|"]'
 }
 
-# Compile all the
+# Compile all the rules
 for (k, v) in rules.items():
     rules[k] = re.compile(v)
 
