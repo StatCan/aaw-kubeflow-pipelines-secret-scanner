@@ -50,6 +50,10 @@ def scan_all(documents, workflow_key='yaml_data'):
         'entropy': h,
         'value': mask(value)
     }
+
+
+    The final result is a flattened version of all of this,
+    which is elastic-search friendly.
     """
     counts = { k: 0 for k in ("docs", "keys", "secrets", "entropy") }
     for doc in documents:
@@ -59,7 +63,7 @@ def scan_all(documents, workflow_key='yaml_data'):
             (severity, desc) = detect_secret(path, key)
             if severity == 1:
                 counts['entropy'] += 1
-            else:
+            elif severity >= 2:
                 counts['secrets'] += 1
 
             flattened = {
@@ -98,30 +102,22 @@ if __name__ == '__main__':
     # Go!
     es = get_es_client()
 
-    # yaml is expensive to render, so
-    # use a thunk and render last-minute.
-    def unthunkify(x):
-        x['yaml_data'] = x['yaml_data']()
-        return x
+    def log_whats_needed(docs):
+        """
+        We only will attach the yamls if there's a detected secret.
+        Otherwise it's kinda overkill.
 
-    exposed_secrets = scan_all(get_pipelines(kfp.Client()))
-    non_zero = (
-        unthunkify(x) for x in exposed_secrets
-        if x['severity'] > 0
-    )
+        NOTE: The incoming `yaml_data` is a thunk, not yaml yet.
+        """
+        for doc in docs:
+            if doc['severity'] > 0:
+                doc['yaml_data'] = doc['yaml_data']()
+            else:
+                del doc['yaml_data']
+            yield doc
+
+    exposed_secrets = log_whats_needed(scan_all(get_pipelines(kfp.Client())))
 
     print("Starting upload...")
-    upload_to_es(es, non_zero, ES_INDEX_NAME)
-    print("Uploaded Severities")
-
-    # Remove the yaml thunk
-    no_yaml = (
-        {
-            k: v for (k, v) in x.items()
-            if k != 'yaml_data'
-        }
-        for x in scan_all(get_pipelines(kfp.Client()))
-        if x['severity'] == 0
-    )
-    upload_to_es(es, no_yaml, ES_INDEX_NAME)
-    print("Uploaded All")
+    upload_to_es(es, exposed_secrets, ES_INDEX_NAME)
+    print("Done.")

@@ -7,7 +7,7 @@ schedule: "0 7 * * *"
 image:
   registry: "k8scc01covidacr.azurecr.io/"
   name: kfp-secret-scanner
-  version: "1.4"
+  version: "1.6"
 
   imagePullSecrets: []
   #- name: image-pull-secret
