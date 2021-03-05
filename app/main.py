@@ -102,7 +102,7 @@ if __name__ == '__main__':
     # Go!
     es = get_es_client()
 
-    def log_whats_needed(docs):
+    def maybe_omit_yaml(docs):
         """
         We only will attach the yamls if there's a detected secret.
         Otherwise it's kinda overkill.
@@ -116,8 +116,10 @@ if __name__ == '__main__':
                 del doc['yaml_data']
             yield doc
 
-    exposed_secrets = log_whats_needed(scan_all(get_pipelines(kfp.Client())))
+    # All key-value pairs and a bunch of metadata about the
+    # originating pipeline yaml
+    documents = maybe_omit_yaml(scan_all(get_pipelines(kfp.Client())))
 
     print("Starting upload...")
-    upload_to_es(es, exposed_secrets, ES_INDEX_NAME)
+    upload_to_es(es, documents, ES_INDEX_NAME)
     print("Done.")
