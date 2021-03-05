@@ -10,7 +10,7 @@ Scan for Kubeflow pipelines secrets.
 4. Deploy the helm chart as you please, adding the `imagePullSecret` and namespace, probably.
 5. If you want, trigger a manual run with `./manual-run.sh -n $NAMESPACE`
 
-Then viola! Check kibana.
+Then voila! Check kibana.
 
 ![Screenshot](screenshot.png)
 
