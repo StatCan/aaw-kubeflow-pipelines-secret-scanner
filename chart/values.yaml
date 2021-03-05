@@ -5,7 +5,7 @@ namespace: monitoring
 schedule: "0 7 * * *"
 
 image:
-  registry: "k8scc01covidacr.azurecr.io/"
+  registry: registry
   name: kfp-secret-scanner
   version: "1.6"
 
@@ -14,7 +14,7 @@ image:
 
 # If you run the script interactively,
 elasticsearch:
-  host: http://daaas-es-http.daaas.svc.cluster.local:9200
+  host: http://elastic
   index: 'kubeflow-pipeline-secrets'
 
 secretscan:
