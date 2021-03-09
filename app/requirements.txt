@@ -2,3 +2,4 @@ kfp @ git+https://github.com/statcan/kubeflow-pipelines@b47c8de7f2915722c5c91bf3
 kfp-pipeline-spec==0.1.3.1
 kfp-server-api==1.2.0
 elasticsearch==7.11.0
+slack-webhook==1.0.5

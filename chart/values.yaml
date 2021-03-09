@@ -7,7 +7,7 @@ schedule: "0 7 * * *"
 image:
   registry: registry
   name: kfp-secret-scanner
-  version: "1.6"
+  version: "1.9"
 
   imagePullSecrets: []
   #- name: image-pull-secret
