@@ -16,7 +16,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: {{ .Chart.Name }}
-            image: {{ .Values.image.registry }}{{ .Values.image.name }}:{{ .Values.image.version }}
+            image: {{ .Values.image.registry }}/{{ .Values.image.name }}:{{ .Values.image.version }}
             command: ["python3", "main.py"]
             env:
             - name: MAX_ENTROPY
@@ -35,3 +35,8 @@ spec:
                 secretKeyRef:
                   name: elastic-creds
                   key: ES_PASS
+            - name: SLACK_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: kfp-slack-webhook
+                  key: SLACK_WEBHOOK

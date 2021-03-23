@@ -1,12 +1,23 @@
 #!/bin/python3
 
 import os
+import sys
 
 import kfp
 from utils.secret_scan import traversal, detect_secret
 from utils.get_pipelines import get_pipelines, format_pipeline
 from utils.es_funcs import get_es_client, upload_to_es
-import sys
+from slack_webhook import Slack
+
+
+# We'll use this to report new
+# detected secrets.
+import datetime as DT
+def last_week(timestamp):
+    week_ago = DT.datetime.now(timestamp.tzinfo) - DT.timedelta(days=7)
+    return week_ago < timestamp
+
+WEBHOOK = os.getenv('SLACK_WEBHOOK', None)
 
 ES_INDEX_NAME = os.getenv(
     'ES_INDEX_NAME',
@@ -102,7 +113,9 @@ if __name__ == '__main__':
     # Go!
     es = get_es_client()
 
+    count = 0
     def maybe_omit_yaml(docs):
+        global count
         """
         We only will attach the yamls if there's a detected secret.
         Otherwise it's kinda overkill.
@@ -112,6 +125,9 @@ if __name__ == '__main__':
         for doc in docs:
             if doc['severity'] > 0:
                 doc['yaml_data'] = doc['yaml_data']()
+                # This is new!
+                if last_week(doc['version_created_at']):
+                    count += 1
             else:
                 del doc['yaml_data']
             yield doc
@@ -123,3 +139,8 @@ if __name__ == '__main__':
     print("Starting upload...")
     upload_to_es(es, documents, ES_INDEX_NAME)
     print("Done.")
+
+    # Send to Slack
+    if count > 0 and WEBHOOK is not None:
+        slack = Slack(url=WEBHOOK)
+        slack.post(text="Kubeflow Pipelines Secrets found: %d detected\nCheck out https://kibana.covid.cloud.statcan.ca/s/monitoring/" % count)

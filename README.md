@@ -13,7 +13,7 @@ Scan for Kubeflow pipelines secrets.
 Then voila! Check kibana.
 
 ![Screenshot](screenshot.png)
-
+![Alerts](alerts.png)
 
 # Attribution
 
