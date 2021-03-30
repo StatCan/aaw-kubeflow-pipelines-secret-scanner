@@ -17,17 +17,21 @@ on:
       - master
       - setup-CI
 
-# Environment variables available to all jobs and steps in this workflow
-env:
-  REGISTRY_NAME: k8scc01covidacr
-  CLUSTER_NAME: k8s-cancentral-02-covid-aks
-  CLUSTER_RESOURCE_GROUP: k8s-cancentral-01-covid-aks
-  NAMESPACE: monitoring
 jobs:
-  build:
+  build-push:
+    env:
+      REGISTRY: k8scc01covidacr.azurecr.io
+      REGISTRY_NAME: k8scc01covidacr
+      CLUSTER_NAME: k8s-cancentral-02-covid-aks
+      CLUSTER_RESOURCE_GROUP: k8s-cancentral-01-covid-aks
+      NAMESPACE: monitoring
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
+ 
+    - name: create elk secret
+      run: |
+        ./create-elk-secret.sh monitoring
 
     # Connect to Azure Container registry (ACR)
     - uses: azure/docker-login@v1
@@ -58,6 +62,14 @@ jobs:
         container-registry-password: ${{ secrets.REGISTRY_PASSWORD }}
         secret-name: ${{ env.REGISTRY_NAME }}-registry-connection
         namespace: ${{ env.NAMESPACE }}
+
+    # - name: add imagePullSecret
+    #   run: |    
+    #     helm template -n ${{ env.NAMESPACE }} \
+    #     --set image.registry=${{ env.REGISTRY_NAME }}.azurecr.io \
+    #     --set elasticsearch.host=http://daaas-es-http.daaas.svc.cluster.local:9200 \
+    #     --set 'image.imagePullSecrets[0].name'=image-pull-secret \
+    #     --set namespace=${{ env.NAMESPACE }} ./chart | kubectl apply -f -
 
     # # Scan image for vulnerabilities
     # - uses: Azure/container-scan@v0
