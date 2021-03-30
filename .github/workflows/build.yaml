@@ -25,8 +25,9 @@ jobs:
     steps:
     - uses: actions/checkout@master
 
-    # Container build and push to a Azure Container registry (ACR)
-    - run: |
+    # Container build
+    - name: build image
+      run: |
         cd app
         docker build -f Dockerfile -t ${{ env.REGISTRY_NAME }}.azurecr.io/kfp-secret-scanner:${{ github.sha }} .
         cd -
