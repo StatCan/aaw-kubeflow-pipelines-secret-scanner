@@ -50,9 +50,9 @@ jobs:
     #     resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
 
     # create the elastic-creds secret
-    - name: create elk secret
-      run: |
-          ./create-elk-secret.sh monitoring
+    # - name: create elk secret
+    #   run: |
+    #       ./create-elk-secret.sh monitoring
     
     # Create imagepullsecret for Azure Container registry (ACR)
     - name: set imagePullSecret
