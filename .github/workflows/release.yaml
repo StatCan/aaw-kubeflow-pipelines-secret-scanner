@@ -42,29 +42,20 @@ jobs:
           docker build -f Dockerfile -t ${{ env.REGISTRY_NAME }}.azurecr.io/kfp-secret-scanner:${{ github.sha }} .
           docker push ${{ env.REGISTRY_NAME }}.azurecr.io/kfp-secret-scanner:${{ github.sha }}
           cd -
-    # Set the target Azure Kubernetes Service (AKS) cluster.
-    - uses: azure/aks-set-context@v1
-      with:
-        creds: '${{ secrets.AZURE_CREDENTIALS }}'
-        cluster-name: ${{ env.CLUSTER_NAME }}
-        resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
+    # # Set the target Azure Kubernetes Service (AKS) cluster.
+    # - uses: azure/aks-set-context@v1
+    #   with:
+    #     creds: '${{ secrets.AZURE_CREDENTIALS }}'
+    #     cluster-name: ${{ env.CLUSTER_NAME }}
+    #     resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
 
-    # # create the elastic-creds secret
-    # - name: create elk secret
-    #   run: |
-    #       ./create-elk-secret.sh monitoring
+    # create the elastic-creds secret
+    - name: create elk secret
+      run: |
+          ./create-elk-secret.sh monitoring
     
     # Create imagepullsecret for Azure Container registry (ACR)
-    # - uses: azure/k8s-create-secret@v1
-    #   with:
-    #     container-registry-url: ${{ env.REGISTRY_NAME }}.azurecr.io
-    #     container-registry-username: ${{ secrets.REGISTRY_USERNAME }}
-    #     container-registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-    #     secret-name: ${{ env.REGISTRY_NAME }}-registry-connection
-    #     namespace: ${{ env.NAMESPACE }}
-
-    # Create imagepullsecret for Azure Container registry (ACR)
-    - name: add imagePullSecret
+    - name: set imagePullSecret
       run: |    
         helm template -n ${{ env.NAMESPACE }} \
         --set image.registry=${{ env.REGISTRY_NAME }}.azurecr.io \
