@@ -42,17 +42,17 @@ jobs:
           docker build -f Dockerfile -t ${{ env.REGISTRY_NAME }}.azurecr.io/kfp-secret-scanner:${{ github.sha }} .
           docker push ${{ env.REGISTRY_NAME }}.azurecr.io/kfp-secret-scanner:${{ github.sha }}
           cd -
-    # # Set the target Azure Kubernetes Service (AKS) cluster.
-    # - uses: azure/aks-set-context@v1
-    #   with:
-    #     creds: '${{ secrets.AZURE_CREDENTIALS }}'
-    #     cluster-name: ${{ env.CLUSTER_NAME }}
-    #     resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
+    # Set the target Azure Kubernetes Service (AKS) cluster.
+    - uses: azure/aks-set-context@v1
+      with:
+        creds: '${{ secrets.AZURE_CREDENTIALS }}'
+        cluster-name: ${{ env.CLUSTER_NAME }}
+        resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
 
     # create the elastic-creds secret
-    # - name: create elk secret
-    #   run: |
-    #       ./create-elk-secret.sh monitoring
+    - name: create elk secret
+      run: |
+          ./create-elk-secret.sh monitoring
     
     # Create imagepullsecret for Azure Container registry (ACR)
     - name: set imagePullSecret
