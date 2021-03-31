@@ -20,7 +20,6 @@ on:
 jobs:
   build-push:
     env:
-      REGISTRY: k8scc01covidacr.azurecr.io
       REGISTRY_NAME: k8scc01covidacr
       CLUSTER_NAME: k8s-cancentral-02-covid-aks
       CLUSTER_RESOURCE_GROUP: k8s-cancentral-01-covid-aks
@@ -29,10 +28,6 @@ jobs:
     steps:
     - uses: actions/checkout@master
  
-    - name: create elk secret
-      run: |
-        ./create-elk-secret.sh monitoring
-
     # Connect to Azure Container registry (ACR)
     - uses: azure/docker-login@v1
       with:
@@ -54,22 +49,28 @@ jobs:
         cluster-name: ${{ env.CLUSTER_NAME }}
         resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
 
+    # # create the elastic-creds secret
+    # - name: create elk secret
+    #   run: |
+    #       ./create-elk-secret.sh monitoring
+    
     # Create imagepullsecret for Azure Container registry (ACR)
-    - uses: azure/k8s-create-secret@v1
-      with:
-        container-registry-url: ${{ env.REGISTRY_NAME }}.azurecr.io
-        container-registry-username: ${{ secrets.REGISTRY_USERNAME }}
-        container-registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-        secret-name: ${{ env.REGISTRY_NAME }}-registry-connection
-        namespace: ${{ env.NAMESPACE }}
+    # - uses: azure/k8s-create-secret@v1
+    #   with:
+    #     container-registry-url: ${{ env.REGISTRY_NAME }}.azurecr.io
+    #     container-registry-username: ${{ secrets.REGISTRY_USERNAME }}
+    #     container-registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+    #     secret-name: ${{ env.REGISTRY_NAME }}-registry-connection
+    #     namespace: ${{ env.NAMESPACE }}
 
-    # - name: add imagePullSecret
-    #   run: |    
-    #     helm template -n ${{ env.NAMESPACE }} \
-    #     --set image.registry=${{ env.REGISTRY_NAME }}.azurecr.io \
-    #     --set elasticsearch.host=http://daaas-es-http.daaas.svc.cluster.local:9200 \
-    #     --set 'image.imagePullSecrets[0].name'=image-pull-secret \
-    #     --set namespace=${{ env.NAMESPACE }} ./chart | kubectl apply -f -
+    # Create imagepullsecret for Azure Container registry (ACR)
+    - name: add imagePullSecret
+      run: |    
+        helm template -n ${{ env.NAMESPACE }} \
+        --set image.registry=${{ env.REGISTRY_NAME }}.azurecr.io \
+        --set elasticsearch.host=${{ secrets.ELASTICSEARCH_URL }} \
+        --set 'image.imagePullSecrets[0].name'=image-pull-secret \
+        --set namespace=${{ env.NAMESPACE }} ./chart | kubectl apply -f -
 
     # # Scan image for vulnerabilities
     # - uses: Azure/container-scan@v0
