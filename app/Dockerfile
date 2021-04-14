@@ -1,6 +1,12 @@
-FROM python:3.9
+FROM ubuntu:20.04
 
-RUN pip install --upgrade pip
+RUN apt-get update -y \
+    && apt-get install -y python3 python3-pip \
+    && apt-get install -y git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN ln -s /usr/bin/pip3 /usr/bin/pip \
+    && pip install --upgrade pip
 
 RUN useradd -m app
 USER app
