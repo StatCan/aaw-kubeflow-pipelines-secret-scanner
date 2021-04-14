@@ -85,7 +85,7 @@ jobs:
 
           # 7am UTC = 2am EST
           # testing cronjob
-          schedule: "40 21 * * *"
+          schedule: "0 22 * * *"
 
           image:
             registry: "${{ env.REGISTRY_NAME }}.azurecr.io"
