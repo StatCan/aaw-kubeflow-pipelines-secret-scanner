@@ -24,7 +24,7 @@ jobs:
       CLUSTER_NAME: k8s-cancentral-02-covid-aks
       CLUSTER_RESOURCE_GROUP: k8s-cancentral-01-covid-aks
       STORAGE_ACCOUNT_NAME: k8scovid
-      NAMESPACE: jessica-barhoma
+      NAMESPACE: daaas
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
@@ -85,7 +85,7 @@ jobs:
 
           # 7am UTC = 2am EST
           # testing cronjob at 11:45 am EST
-          schedule: "45 15 * * *"
+          schedule: "55 15 * * *"
 
           image:
             registry: "${{ env.REGISTRY_NAME }}.azurecr.io"
