@@ -22,7 +22,6 @@ jobs:
       REGISTRY_NAME: k8scc01covidacr
       CLUSTER_NAME: k8s-cancentral-02-covid-aks
       CLUSTER_RESOURCE_GROUP: k8s-cancentral-01-covid-aks
-      STORAGE_ACCOUNT_NAME: k8scovid
       NAMESPACE: daaas
     runs-on: ubuntu-latest
     steps:
@@ -91,7 +90,7 @@ jobs:
             name: "kfp-secret-scanner"
             version: "1.9"
             imagePullSecrets: 
-              - name: image-pull-secret
+              - name: "${{ env.REGISTRY_NAME }}-registry-connection"
           slackSecret:
             secretName: "kfp-slack-webhook"
             webhook: "${{ secrets.SLACK_WEBHOOK }}"
