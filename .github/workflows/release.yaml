@@ -15,7 +15,6 @@ on:
   push:
     branches:
       - master
-      - fix-up-CI
 
 jobs:
   build-push:
@@ -84,8 +83,7 @@ jobs:
           namespace: "${{ env.NAMESPACE }}"
 
           # 7am UTC = 2am EST
-          # testing cronjob at 11:45 am EST
-          schedule: "55 15 * * *"
+          schedule: "0 7 * * *"
 
           image:
             registry: "${{ env.REGISTRY_NAME }}.azurecr.io"

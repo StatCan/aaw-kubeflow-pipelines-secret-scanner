@@ -19,7 +19,7 @@ env:
   CLUSTER_NAME: k8s-cancentral-02-covid-aks
   CLUSTER_RESOURCE_GROUP: k8s-cancentral-01-covid-aks
   STORAGE_ACCOUNT_NAME: k8scovid
-  NAMESPACE: monitoring
+  NAMESPACE: daaas
 jobs:
   build:
     runs-on: ubuntu-latest

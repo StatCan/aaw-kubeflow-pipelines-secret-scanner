@@ -141,8 +141,6 @@ if __name__ == '__main__':
     print("Done.")
 
     # Send to Slack
-
-    # removed next line temporarily to test slack webhook
-    # if count > 0 and WEBHOOK is not None:
-    slack = Slack(url=WEBHOOK)
-    slack.post(text="Kubeflow Pipelines Secrets found: %d detected\nCheck out https://kibana.covid.cloud.statcan.ca/s/monitoring/" % count)
+    if count > 0 and WEBHOOK is not None:
+        slack = Slack(url=WEBHOOK)
+        slack.post(text="Kubeflow Pipelines Secrets found: %d detected\nCheck out https://kibana.covid.cloud.statcan.ca/s/monitoring/" % count)
