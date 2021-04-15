@@ -84,15 +84,16 @@ jobs:
           namespace: "${{ env.NAMESPACE }}"
 
           # 7am UTC = 2am EST
-          # testing cronjob at 11:35 am EST
-          schedule: "35 15 * * *"
+          # testing cronjob at 11:45 am EST
+          schedule: "45 15 * * *"
 
           image:
             registry: "${{ env.REGISTRY_NAME }}.azurecr.io"
             tag: "${{ github.sha }}"
             name: "kfp-secret-scanner"
             version: "1.9"
-            imagePullSecrets: image-pull-secret
+            imagePullSecrets: 
+              - name: image-pull-secret
           slackSecret:
             secretName: "kfp-slack-webhook"
             webhook: "${{ secrets.SLACK_WEBHOOK }}"
