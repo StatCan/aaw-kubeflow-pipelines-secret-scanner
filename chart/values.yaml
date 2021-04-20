@@ -1,4 +1,4 @@
-namespace: monitoring
+namespace: daaas
 
 
 # 7am UTC = 2am EST
@@ -6,11 +6,11 @@ schedule: "0 7 * * *"
 
 image:
   registry: registry
-  name: kfp-secret-scanner
+  name: "kfp-secret-scanner"
   version: "1.9"
-
+  tag: "1.9"
   imagePullSecrets: []
-  #- name: image-pull-secret
+    # - name: image-pull-secret 
 
 # If you run the script interactively,
 elasticsearch:

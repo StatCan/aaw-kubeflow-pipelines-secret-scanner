@@ -12,6 +12,8 @@
 set -e
 
 NAMESPACE="$1"
+WEBHOOK="$2"
+
 if test -z "$NAMESPACE"; then
 	echo "Error: No namespace provided." >&2
 	echo "Please provide a namespace as an argument." >&2
@@ -19,14 +21,16 @@ if test -z "$NAMESPACE"; then
 fi
 
 # Read Password
-read -s -p "Slack Webhook: " webhook
-echo
+if test -z "$WEBHOOK"; then
+	read -s -p "Slack Webhook: " webhook
+	echo
+fi
 
-if test -z "$webhook"; then
+if test -z "$WEBHOOK"; then
 	echo "Provided webhook was blank. Exiting." >&2
 	exit 1
 fi
 
 kubectl create secret generic kfp-slack-webhook \
-		--from-literal=SLACK_WEBHOOK=$webhook \
+		--from-literal=SLACK_WEBHOOK=$WEBHOOK \
 		--namespace $NAMESPACE

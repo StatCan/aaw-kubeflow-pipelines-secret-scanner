@@ -15,7 +15,6 @@ on:
   push:
     branches:
       - master
-      - setup-CI
 
 jobs:
   build-push:
@@ -23,7 +22,7 @@ jobs:
       REGISTRY_NAME: k8scc01covidacr
       CLUSTER_NAME: k8s-cancentral-02-covid-aks
       CLUSTER_RESOURCE_GROUP: k8s-cancentral-01-covid-aks
-      NAMESPACE: monitoring
+      NAMESPACE: daaas
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
@@ -43,38 +42,67 @@ jobs:
           docker push ${{ env.REGISTRY_NAME }}.azurecr.io/kfp-secret-scanner:${{ github.sha }}
           cd -
     # Set the target Azure Kubernetes Service (AKS) cluster.
-#     - uses: azure/aks-set-context@v1
-#       with:
-#         creds: '${{ secrets.AZURE_CREDENTIALS }}'
-#         cluster-name: ${{ env.CLUSTER_NAME }}
-#         resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
+    - uses: azure/aks-set-context@v1
+      with:
+        creds: '${{ secrets.AZURE_CREDENTIALS }}'
+        cluster-name: ${{ env.CLUSTER_NAME }}
+        resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
 
-    # create the elastic-creds secret
-#     - name: create elk secret
-#       run: |
-#           ./create-elk-secret.sh monitoring
-    
     # Create imagepullsecret for Azure Container registry (ACR)
-    - name: set imagePullSecret
-      run: |    
-        helm template -n ${{ env.NAMESPACE }} \
-        --set image.registry=${{ env.REGISTRY_NAME }}.azurecr.io \
-        --set elasticsearch.host=${{ secrets.ELASTICSEARCH_URL }} \
-        --set 'image.imagePullSecrets[0].name'=image-pull-secret \
-        --set namespace=${{ env.NAMESPACE }} ./chart | kubectl apply -f -
+    - uses: azure/k8s-create-secret@v1
+      with:
+        container-registry-url: ${{ env.REGISTRY_NAME }}.azurecr.io
+        container-registry-username: ${{ secrets.REGISTRY_USERNAME }}
+        container-registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+        secret-name: ${{ env.REGISTRY_NAME }}-registry-connection
+        namespace: ${{ env.NAMESPACE }}
 
-    # # Scan image for vulnerabilities
-    # - uses: Azure/container-scan@v0
-    #   with:
-    #     image-name: ${{ env.REGISTRY_NAME }}.azurecr.io/kfp-secret-scanner:${{ github.sha }}
-    #     severity-threshold: CRITICAL
-    #     run-quality-checks: false
+    # Scan image for vulnerabilities
+    - uses: Azure/container-scan@v0
+      with:
+        image-name: ${{ env.REGISTRY_NAME }}.azurecr.io/kfp-secret-scanner:${{ github.sha }}
+        severity-threshold: CRITICAL
+        run-quality-checks: false
+
+    # Copy KUBECONFIG
+    - run: |
+        mkdir -p /home/runner/work/_temp/_github_home/
+        cp $KUBECONFIG /home/runner/work/_temp/_github_home/KUBECONFIG
 
     # Deploy Helm chart
     - uses: 'statcan/actions/helm@master'
+      env:
+        KUBECONFIG: /github/home/KUBECONFIG
       with:
         release: 'kfp-secret-scanner'
-        namespace: 'monitoring'
+        namespace: "${{ env.NAMESPACE }}"
         chart: './chart'
         token: '${{ github.token }}'
-        values: './chart'
+        values: |
+          namespace: "${{ env.NAMESPACE }}"
+
+          # 7am UTC = 2am EST
+          schedule: "0 7 * * *"
+
+          image:
+            registry: "${{ env.REGISTRY_NAME }}.azurecr.io"
+            tag: "${{ github.sha }}"
+            name: "kfp-secret-scanner"
+            version: "1.9"
+            imagePullSecrets: 
+              - name: "${{ env.REGISTRY_NAME }}-registry-connection"
+          slackSecret:
+            secretName: "kfp-slack-webhook"
+            webhook: "${{ secrets.SLACK_WEBHOOK }}"
+          elkSecret:
+            secretName: "elastic-creds"
+            elkUser: "${{ secrets.ES_USER }}"
+            elkPass: "${{ secrets.ES_PASS }}"
+
+          elasticsearch:
+            host: "http://daaas-es-http.daaas.svc.cluster.local:9200"
+            index: 'kubeflow-pipeline-secrets'
+
+          secretscan:
+            max_entropy: "3.5"
+

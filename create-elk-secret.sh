@@ -12,6 +12,9 @@
 set -e
 
 NAMESPACE="$1"
+elk_user="$2"
+elk_pass="$3"
+
 if test -z "$NAMESPACE"; then
 	echo "Error: No namespace provided." >&2
 	echo "Please provide a namespace as an argument." >&2
@@ -19,10 +22,12 @@ if test -z "$NAMESPACE"; then
 fi
 
 # Read Password
-read -s -p "Elastic User: " elk_user
-echo
-read -s -p "Elastic Password: " elk_pass
-echo
+if test -z "$elk_user" || test -z "$elk_pass"; then
+	read -s -p "Elastic User: " elk_user
+	echo
+	read -s -p "Elastic Password: " elk_pass
+	echo
+fi
 
 if test -z "$elk_user" || test -z "$elk_pass"; then
 	echo "Provided username or password were blank. Exiting." >&2
